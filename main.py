@@ -1,10 +1,9 @@
 import torch
-
 from model import VitShuffle, Config
 from trainer import Trainer, ImageShuffleDataset
 
 if __name__ == '__main__':
-    config = Config(logging=False)
+    config = Config(logging=True)
 
     # Set up wandb for model performance logging.
     if config.logging:

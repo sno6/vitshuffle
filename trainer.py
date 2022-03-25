@@ -2,13 +2,12 @@ import os
 import torch
 import wandb
 import random
-
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import Adam
-
 from PIL import Image, ImageOps
-from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms.functional import to_tensor
+import matplotlib.pyplot as plt
+from utils import blockshaped
 
 
 class ImageShuffleDataset(Dataset):
@@ -20,19 +19,15 @@ class ImageShuffleDataset(Dataset):
         self.device = device
 
     def __getitem__(self, idx):
-        n_patches = int((self.config.image_size / self.config.patch_size) ** 2)
-
         image = Image.open(os.path.join(self.data_directory, f'{idx}.png'))
         image = ImageOps.grayscale(image)
         image = to_tensor(image)
 
-
-        # image.size() = (B, W, H) = (1, 28, 28)
-        # We want image_size**2 / patch_size**2 patches of patch_size**2.
         b, w, h = image.size()
         assert w == h and w % self.config.patch_size == 0
 
-        blocks = self.blockshaped(image[0], self.config.patch_size, self.config.patch_size)
+        n_patches = int((self.config.image_size / self.config.patch_size) ** 2)
+        blocks = blockshaped(image[0], self.config.patch_size, self.config.patch_size)
         blocks = blocks.view(n_patches, self.config.patch_size**2).contiguous()
 
         shuffled_positions = [i for i in range(0, blocks.size(0))]
@@ -48,23 +43,16 @@ class ImageShuffleDataset(Dataset):
             torch.tensor(shuffled_positions, dtype=torch.long).to(self.device),
         )
 
-    def blockshaped(self, arr, nrows, ncols):
-        """
-        Return an array of shape (n, nrows, ncols) where
-        n * nrows * ncols = arr.size
-
-        If arr is a 2D array, the returned array should look like n subblocks with
-        each subblock preserving the "physical" layout of arr.
-        """
-        h, w = arr.shape
-        assert h % nrows == 0, f"{h} rows is not evenly divisible by {nrows}"
-        assert w % ncols == 0, f"{w} cols is not evenly divisible by {ncols}"
-        return (arr.reshape(h // nrows, nrows, -1, ncols)
-                .swapaxes(1, 2)
-                .reshape(-1, nrows, ncols))
+    def plot_blocks(self, blocks):
+        sz = int(self.config.image_size / self.config.patch_size)
+        _, axs = plt.subplots(sz, sz, figsize=(12, 12))
+        axs = axs.flatten()
+        for img, ax in zip(blocks, axs):
+            ax.imshow(img)
+        plt.show()
 
     def __len__(self):
-        return 10000
+        return 60000
 
 
 class Trainer:

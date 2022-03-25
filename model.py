@@ -1,27 +1,25 @@
 from torch import nn
 from torch.functional import F
-
-import torch
 import math
 
 
 class Config:
     """
-    Just decided to chuck everything in together cus' why not.
+    Model and trainer config all in one place, sue me.
     """
 
     # Model configuration.
-    embed_dim = 512
+    embed_dim = 256
     n_blocks = 8
     n_heads = 8
 
     image_size = 28
-    patch_size = 7
+    patch_size = int(image_size / 4)
 
     # Trainer configuration.
     epochs = 100
     batch_size = 1
-    learning_rate = 1e-3
+    learning_rate = 3e-4
 
     print_loss_every_iter = 10
     test_every_n_epochs = 10
@@ -36,6 +34,11 @@ class Config:
 
 
 class MultiheadSelfAttention(nn.Module):
+    """
+    Most of this is shamelessly ripped from https://github.com/karpathy/minGPT.
+
+    All hail Karpathy.
+    """
     def __init__(self, config):
         super().__init__()
 
@@ -46,17 +49,17 @@ class MultiheadSelfAttention(nn.Module):
         self.n_heads = config.n_heads
 
     def forward(self, x):
-        B, T, C = x.size()
+        b, t, c = x.size()
 
-        k = self.key(x).view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2)
-        q = self.query(x).view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2)
-        v = self.value(x).view(B, T, self.n_heads, C // self.n_heads).transpose(1, 2)
+        k = self.key(x).view(b, t, self.n_heads, c // self.n_heads).transpose(1, 2)
+        q = self.query(x).view(b, t, self.n_heads, c // self.n_heads).transpose(1, 2)
+        v = self.value(x).view(b, t, self.n_heads, c // self.n_heads).transpose(1, 2)
 
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
         att = F.softmax(att, dim=-1)
 
         y = att @ v
-        y = y.transpose(1, 2).contiguous().view(B, T, C)
+        y = y.transpose(1, 2).contiguous().view(b, t, c)
 
         return self.proj(y)
 
@@ -87,8 +90,6 @@ class VitShuffle(nn.Module):
         n_patches = int((config.image_size / config.patch_size)**2)
 
         self.embedding = nn.Linear(config.patch_size**2, config.embed_dim)
-        # self.positional = nn.Parameter(torch.zeros(1, n_patches, config.embed_dim))
-
         self.blocks = nn.Sequential(*[TransformerBlock(config) for _ in range(config.n_blocks)])
         self.mlp = nn.Linear(config.embed_dim, n_patches)
 
@@ -96,7 +97,6 @@ class VitShuffle(nn.Module):
         b, t, c = x.size()
 
         x = self.embedding(x)
-        # x = x + self.positional[:, :t, :]
         y_hat = self.blocks(x)
         y_hat = self.mlp(y_hat)
 

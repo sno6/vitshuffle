@@ -1,3 +1,5 @@
+wandb
+wandb/*
 data
 data/*
 .DS_Store
