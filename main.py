@@ -3,7 +3,7 @@ from model import VitShuffle, Config
 from trainer import Trainer, ImageShuffleDataset
 
 if __name__ == '__main__':
-    config = Config(logging=True)
+    config = Config(logging=False)
 
     # Set up wandb for model performance logging.
     if config.logging:
@@ -19,8 +19,9 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         device = torch.cuda.current_device()
 
-    data = ImageShuffleDataset(config, directory="./data/", device=device)
     model = VitShuffle(config).to(device)
 
-    trainer = Trainer(model, config, data, None)
+    train = ImageShuffleDataset(config, directory="./data/train/", device=device, n_images=60000)
+    test = ImageShuffleDataset(config, directory="./data/test/", device=device, n_images=10000)
+    trainer = Trainer(model, config, train, test)
     trainer.train()

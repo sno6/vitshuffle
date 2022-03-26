@@ -9,20 +9,20 @@ class Config:
     """
 
     # Model configuration.
-    embed_dim = 256
-    n_blocks = 8
-    n_heads = 8
+    embed_dim = 768
+    n_blocks = 12
+    n_heads = 12
 
     image_size = 28
     patch_size = int(image_size / 4)
 
     # Trainer configuration.
     epochs = 100
-    batch_size = 1
+    batch_size = 256
     learning_rate = 3e-4
 
     print_loss_every_iter = 10
-    test_every_n_epochs = 10
+    test_every_n_epochs = 1
     save_chkpt_every_n_epochs = 10000
 
     # Logging to wandb.
