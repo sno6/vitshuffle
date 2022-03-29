@@ -102,6 +102,6 @@ class VitShuffle(nn.Module):
 
         loss = None
         if y is not None:
-            loss = F.cross_entropy(y_hat.view(-1, y_hat.size(-1)), y.view(-1), reduction="mean")
+            loss = F.cross_entropy(y_hat.view(-1, y_hat.size(-1)), y.view(-1))
 
         return y_hat, loss
